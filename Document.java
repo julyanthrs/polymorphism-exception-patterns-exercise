@@ -1,14 +1,14 @@
-public class DocumentParcel extends Parcel {
+public class Document extends Parcel {
     private final int numberOfPages;
 
-    public DocumentParcel(String trackingNumber, String receiverName, double weight,
-                          int numberOfPages) throws ParcelException {
+    public Document(String trackingNumber, String receiverName, double weight,
+                    int numberOfPages) {
         super(trackingNumber, receiverName, weight);
         if (weight > 0.5) {
-            throw new ParcelException("Document weight must be 0.5 kg or less!");
+            throw new IllegalArgumentException("Document weight must be 0.5 kg or less!");
         }
         if (numberOfPages < 1 || numberOfPages > 100) {
-            throw new ParcelException("Number of pages must be from 1 to 100!");
+            throw new IllegalArgumentException("Number of pages must be from 1 to 100!");
         }
         this.numberOfPages = numberOfPages;
     }

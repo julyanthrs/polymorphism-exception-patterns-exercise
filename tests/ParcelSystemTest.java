@@ -2,185 +2,290 @@
 public class ParcelSystemTest {
     private static int checks = 0;
 
-    public static void main(String[] args) throws ParcelException {
+    public static void main(String[] args) {
         checkFees();
+        checkRequiredExamples();
         checkServiceChanges();
         checkValidation();
         checkManager();
         System.out.println("All " + checks + " checks passed.");
     }
 
-    private static void checkFees() throws ParcelException {
-        Parcel document = new DocumentParcel("ABC0001", "Juan", 0.5, 100);
+    private static void checkRequiredExamples() {
+        Parcel lightBox = new Box("ABC0040", "Juan", 1, 10, 10, 10);
+        lightBox.setDeliveryStrategy(new StandardDelivery());
+        check(lightBox.getDeliveryFee() == 40, "Required 1 kg box: Php 40.00");
+
+        Parcel roundedBox = new Box("ABC0041", "Juan", 2.1, 10, 10, 10);
+        roundedBox.setDeliveryStrategy(new StandardDelivery());
+        check(roundedBox.getDeliveryFee() == 120, "Required 2.1 kg box: Php 120.00");
+
+        Parcel volumeBox = new Box("ABC0042", "Juan", 1, 35, 20, 10);
+        volumeBox.setDeliveryStrategy(new StandardDelivery());
+        check(volumeBox.getDeliveryFee() == 80, "Required 35 x 20 x 10 box: Php 80.00");
+
+        Parcel sameDayBox = new Box("ABC0043", "Juan", 5, 35, 50, 20);
+        sameDayBox.setDeliveryStrategy(new SameDayDelivery());
+        check(sameDayBox.getChargeableWeight() == 10, "Required Same Day box: 10 kg");
+        check(sameDayBox.getDeliveryFee() == 900, "Required Same Day box: Php 900.00");
+
+        Parcel bulkyBox = new Box("ABC0044", "Juan", 5, 35, 50, 21);
+        check(bulkyBox.getChargeableWeight() == 11, "Required rejected Same Day box: 11 kg");
+        try {
+            bulkyBox.setDeliveryStrategy(new SameDayDelivery());
+            throw new AssertionError("Required bulky Same Day box should fail");
+        } catch (IllegalArgumentException exception) {
+            check(exception.getMessage().equals("Same Day delivery is only for parcels up to 10 kg!"),
+                    "Required bulky box rejects Same Day");
+        }
+
+        Parcel lightFragile = new Fragile("ABC0045", "Juan", 1, 10, 10, 10, "Careful");
+        lightFragile.setDeliveryStrategy(new StandardDelivery());
+        check(lightFragile.getDeliveryFee() == 140, "Required fragile parcel: Php 140.00");
+    }
+
+    private static void checkFees() {
+        Parcel document = new Document("ABC0001", "Juan", 0.5, 100);
         check(document.getChargeableWeight() == 0.5, "Document uses its actual weight");
         check(document.getBaseFee() == 50, "Document has a flat base fee");
-        document.setDeliveryService(new StandardDelivery());
+        document.setDeliveryStrategy(new StandardDelivery());
         check(document.getDeliveryFee() == 50, "Document Standard fee");
-        document.setDeliveryService(new ExpressDelivery());
+        document.setDeliveryStrategy(new ExpressDelivery());
         check(document.getDeliveryFee() == 75, "Document Express fee");
-        document.setDeliveryService(new SameDayDelivery());
+        document.setDeliveryStrategy(new SameDayDelivery());
         check(document.getDeliveryFee() == 200, "Document Same Day fee");
 
-        Parcel box = new BoxParcel("ABC0002", "Ana", 2, 10, 10, 10);
+        Parcel box = new Box("ABC0002", "Ana", 2, 10, 10, 10);
         check(box.getChargeableWeight() == 2, "Whole-number weight stays the same");
-        box.setDeliveryService(new StandardDelivery());
+        box.setDeliveryStrategy(new StandardDelivery());
         check(box.getDeliveryFee() == 80, "Box Standard fee");
-        box.setDeliveryService(new ExpressDelivery());
+        box.setDeliveryStrategy(new ExpressDelivery());
         check(box.getDeliveryFee() == 120, "Box Express fee");
-        box.setDeliveryService(new SameDayDelivery());
+        box.setDeliveryStrategy(new SameDayDelivery());
         check(box.getDeliveryFee() == 260, "Box Same Day fee");
 
-        Parcel roundedBox = new BoxParcel("ABC0003", "Ben", 2.1, 10, 10, 10);
+        Parcel roundedBox = new Box("ABC0003", "Ben", 2.1, 10, 10, 10);
         check(roundedBox.getChargeableWeight() == 3, "Decimal box weight rounds up");
-        BoxParcel volumeBox = new BoxParcel("ABC0004", "Liza", 1, 40, 20, 10);
+        Box volumeBox = new Box("ABC0004", "Liza", 1, 40, 20, 10);
         check(Math.abs(volumeBox.getVolumetricWeight() - 8000.0 / 3500) < 0.000001,
                 "Volumetric weight formula");
         check(volumeBox.getChargeableWeight() == 3, "Larger volumetric weight is used");
 
-        Parcel fragile = new FragileParcel("ABC0005", "Maria", 1.8, 40, 20, 10, "Handle with care");
-        check(fragile instanceof BoxParcel, "Fragile extends Box");
+        Parcel fragile = new Fragile("ABC0005", "Maria", 1.8, 40, 20, 10, "Handle with care");
+        check(fragile instanceof Box, "Fragile extends Box");
         check(fragile.getChargeableWeight() == 3, "Fragile chargeable weight");
         check(fragile.getBaseFee() == 220, "Fragile handling fee");
-        fragile.setDeliveryService(new StandardDelivery());
+        fragile.setDeliveryStrategy(new StandardDelivery());
         check(fragile.getDeliveryFee() == 220, "Fragile Standard fee");
-        fragile.setDeliveryService(new ExpressDelivery());
+        fragile.setDeliveryStrategy(new ExpressDelivery());
         check(fragile.getDeliveryFee() == 330, "Assignment example: Php 330.00");
-        fragile.setDeliveryService(new SameDayDelivery());
+        fragile.setDeliveryStrategy(new SameDayDelivery());
         check(fragile.getDeliveryFee() == 540, "Fragile Same Day fee");
 
-        Parcel maximumBox = new BoxParcel("ABC0006", "Max", 50, 1, 1, 1);
-        Parcel maximumFragile = new FragileParcel("ABC0007", "Max", 30, 1, 1, 1, "Careful");
+        Parcel maximumBox = new Box("ABC0006", "Max", 50, 1, 1, 1);
+        Parcel maximumFragile = new Fragile("ABC0007", "Max", 30, 1, 1, 1, "Careful");
         check(maximumBox.getChargeableWeight() == 50, "Box maximum weight is allowed");
         check(maximumFragile.getChargeableWeight() == 30, "Fragile maximum weight is allowed");
-        BoxParcel largeBox = new BoxParcel("ABC0008", "Large", 1, 50000, 50000, 50000);
+        Box largeBox = new Box("ABC0008", "Large", 1, 50000, 50000, 50000);
         check(largeBox.getVolumetricWeight() > 0, "Dimensions do not overflow as integers");
     }
 
-    private static void checkServiceChanges() throws ParcelException {
-        Parcel parcel = new BoxParcel("ABC0010", "Pat", 10, 1, 1, 1);
-        parcel.setDeliveryService(new SameDayDelivery());
+    private static void checkServiceChanges() {
+        Parcel parcel = new Box("ABC0010", "Pat", 10, 1, 1, 1);
+        parcel.setDeliveryStrategy(new SameDayDelivery());
         check(parcel.getDeliveryFee() == 900, "Exactly 10 kg qualifies for Same Day");
 
-        Parcel heavy = new BoxParcel("ABC0011", "Pat", 10.01, 1, 1, 1);
-        DeliveryService oldService = new ExpressDelivery();
-        heavy.setDeliveryService(oldService);
+        Parcel heavy = new Box("ABC0011", "Pat", 10.01, 1, 1, 1);
+        DeliveryStrategy oldService = new ExpressDelivery();
+        heavy.setDeliveryStrategy(oldService);
         try {
-            heavy.setDeliveryService(new SameDayDelivery());
+            heavy.setDeliveryStrategy(new SameDayDelivery());
             throw new AssertionError("Heavy Same Day delivery should fail");
-        } catch (ParcelException exception) {
+        } catch (IllegalArgumentException exception) {
             check(exception.getMessage().equals("Same Day delivery is only for parcels up to 10 kg!"),
                     "Same Day rejection message");
         }
-        check(heavy.getDeliveryService() == oldService, "Rejected change preserves old strategy");
+        check(heavy.getDeliveryStrategy() == oldService, "Rejected change preserves old strategy");
         check(heavy.getDeliveryFee() == 660, "Rejected change preserves old fee");
 
-        Parcel bulky = new BoxParcel("ABC0012", "Pat", 1, 100, 100, 100);
+        Parcel bulky = new Box("ABC0012", "Pat", 1, 100, 100, 100);
         try {
-            bulky.setDeliveryService(new SameDayDelivery());
+            bulky.setDeliveryStrategy(new SameDayDelivery());
             throw new AssertionError("Bulky Same Day delivery should fail");
-        } catch (ParcelException exception) {
-            check(bulky.getDeliveryService() == null, "Same Day checks chargeable weight, not actual weight");
+        } catch (IllegalArgumentException exception) {
+            check(bulky.getDeliveryStrategy() == null, "Same Day checks chargeable weight, not actual weight");
         }
 
         check(parcel.getStatus().equals("Pending"), "New parcel is Pending");
         parcel.markAsDelivered();
         check(parcel.getStatus().equals("Delivered"), "Parcel becomes Delivered");
         try {
-            parcel.setDeliveryService(new StandardDelivery());
+            parcel.setDeliveryStrategy(new StandardDelivery());
             throw new AssertionError("Delivered service change should fail");
-        } catch (ParcelException exception) {
+        } catch (IllegalArgumentException exception) {
             check(exception.getMessage().equals("Parcel already delivered!"), "Delivered service is locked");
         }
         try {
             parcel.markAsDelivered();
             throw new AssertionError("Second delivery should fail");
-        } catch (ParcelException exception) {
+        } catch (IllegalArgumentException exception) {
             check(exception.getMessage().equals("Parcel was already delivered."), "Repeated delivery message");
         }
     }
 
-    private static void checkValidation() throws ParcelException {
+    private static void checkValidation() {
+        String[] invalidTrackingNumbers = { "", "ABC123", "ABC12345", "XYZ0001", "ABC00 1", "ABC00!1" };
+        for (String trackingNumber : invalidTrackingNumbers) {
+            try {
+                new Document(trackingNumber, "Juan", 0.1, 1);
+                throw new AssertionError("Invalid tracking format should fail: " + trackingNumber);
+            } catch (IllegalArgumentException exception) {
+                check(true, "Invalid tracking format rejected");
+            }
+        }
+        Document namedDocument = new Document("ABC0020", "  Ana-Maria O'Brien  ", 0.1, 1);
+        check(namedDocument.getReceiverName().equals("Ana-Maria O'Brien"), "Ordinary names are trimmed and preserved");
         try {
-            new DocumentParcel("abc0001", "Juan", 0.1, 1);
+            new Document("abc0001", "Juan", 0.1, 1);
             throw new AssertionError("Invalid tracking number should fail");
-        } catch (ParcelException exception) {
+        } catch (IllegalArgumentException exception) {
             check(true, "Invalid tracking number rejected");
         }
         try {
-            new DocumentParcel("ABC0020", "  ", 0.1, 1);
+            new Document("ABC0020", "  ", 0.1, 1);
             throw new AssertionError("Blank receiver should fail");
-        } catch (ParcelException exception) {
+        } catch (IllegalArgumentException exception) {
             check(true, "Blank receiver rejected");
         }
         double[] invalidWeights = { 0, -1, Double.NaN, Double.POSITIVE_INFINITY, 0.51 };
         for (double weight : invalidWeights) {
             try {
-                new DocumentParcel("ABC0020", "Juan", weight, 1);
+                new Document("ABC0020", "Juan", weight, 1);
                 throw new AssertionError("Invalid document weight should fail: " + weight);
-            } catch (ParcelException exception) {
+            } catch (IllegalArgumentException exception) {
                 check(true, "Invalid document weight rejected");
             }
         }
         int[] invalidPages = { 0, 101 };
         for (int pages : invalidPages) {
             try {
-                new DocumentParcel("ABC0020", "Juan", 0.1, pages);
+                new Document("ABC0020", "Juan", 0.1, pages);
                 throw new AssertionError("Invalid page count should fail");
-            } catch (ParcelException exception) {
+            } catch (IllegalArgumentException exception) {
                 check(true, "Invalid page count rejected");
             }
         }
         try {
-            new BoxParcel("ABC0021", "Juan", 50.01, 1, 1, 1);
+            new Box("ABC0021", "Juan", 50.01, 1, 1, 1);
             throw new AssertionError("Overweight box should fail");
-        } catch (ParcelException exception) {
+        } catch (IllegalArgumentException exception) {
             check(true, "Overweight box rejected");
         }
         try {
-            new BoxParcel("ABC0021", "Juan", 1, 0, 1, 1);
+            new Box("ABC0021", "Juan", 1, 0, 1, 1);
             throw new AssertionError("Invalid dimension should fail");
-        } catch (ParcelException exception) {
+        } catch (IllegalArgumentException exception) {
             check(true, "Invalid dimension rejected");
         }
         try {
-            new FragileParcel("ABC0022", "Juan", 30.01, 1, 1, 1, "Careful");
+            new Fragile("ABC0022", "Juan", 30.01, 1, 1, 1, "Careful");
             throw new AssertionError("Overweight fragile parcel should fail");
-        } catch (ParcelException exception) {
+        } catch (IllegalArgumentException exception) {
             check(true, "Overweight fragile parcel rejected");
         }
         try {
-            new FragileParcel("ABC0022", "Juan", 1, 1, 1, 1, "  ");
+            new Fragile("ABC0022", "Juan", 1, 1, 1, 1, "  ");
             throw new AssertionError("Blank handling note should fail");
-        } catch (ParcelException exception) {
+        } catch (IllegalArgumentException exception) {
             check(true, "Blank handling note rejected");
         }
     }
 
-    private static void checkManager() throws ParcelException {
+    private static void checkManager() {
         ParcelManager manager = ParcelManager.getInstance();
         check(manager == ParcelManager.getInstance(), "Singleton returns the same manager");
-        Parcel parcel = new DocumentParcel("ABC0030", "Juan", 0.1, 1);
+        Parcel parcel = new Document("ABC0030", "Juan", 0.1, 1);
         try {
             manager.addParcel(parcel);
             throw new AssertionError("Parcel without a service should fail");
-        } catch (ParcelException exception) {
+        } catch (IllegalArgumentException exception) {
             check(true, "Service required before adding");
         }
-        parcel.setDeliveryService(new StandardDelivery());
+        parcel.setDeliveryStrategy(new StandardDelivery());
         manager.addParcel(parcel);
         check(manager.findParcel("ABC0030") == parcel, "Tracking number lookup");
         check(manager.findParcel("ABC9999") == null, "Unknown tracking number");
-        Parcel duplicate = new DocumentParcel("ABC0030", "Ana", 0.2, 2);
-        duplicate.setDeliveryService(new StandardDelivery());
+        Parcel duplicate = new Document("ABC0030", "Ana", 0.2, 2);
+        duplicate.setDeliveryStrategy(new StandardDelivery());
         try {
             manager.addParcel(duplicate);
             throw new AssertionError("Duplicate tracking number should fail");
-        } catch (ParcelException exception) {
+        } catch (IllegalArgumentException exception) {
             check(exception.getMessage().equals("Tracking number already exists!"), "Duplicate rejected");
         }
         check(manager.getAllParcels().size() == 1, "Duplicate is not stored");
         manager.getAllParcels().clear();
         check(manager.getAllParcels().size() == 1, "Returned list cannot clear the manager");
+
+        check(manager.changeDeliveryService("ABC0030", new ExpressDelivery()) == 75,
+                "Manager changes service and returns the new fee");
+        DeliveryStrategy oldService = parcel.getDeliveryStrategy();
+        try {
+            manager.changeDeliveryService("ABC0030", null);
+            throw new AssertionError("Empty strategy should fail");
+        } catch (IllegalArgumentException exception) {
+            check(parcel.getDeliveryStrategy() == oldService, "Empty strategy preserves the old service");
+        }
+        check(parcel.getDeliveryFee() == 75, "Empty strategy preserves the old fee");
+
+        manager.markAsDelivered("ABC0030");
+        check(parcel.isDelivered(), "Manager marks a parcel Delivered");
+        try {
+            manager.changeDeliveryService("ABC0030", new StandardDelivery());
+            throw new AssertionError("Manager should reject a delivered service change");
+        } catch (IllegalArgumentException exception) {
+            check(exception.getMessage().equals("Parcel already delivered!"), "Manager protects delivered parcels");
+        }
+        check(parcel.getDeliveryFee() == 75, "Delivered fee is preserved");
+        try {
+            manager.markAsDelivered("ABC0030");
+            throw new AssertionError("Manager should reject repeated delivery");
+        } catch (IllegalArgumentException exception) {
+            check(exception.getMessage().equals("Parcel was already delivered."), "Manager repeated-delivery message");
+        }
+        try {
+            manager.addParcel(duplicate);
+            throw new AssertionError("Delivered tracking number should remain unique");
+        } catch (IllegalArgumentException exception) {
+            check(exception.getMessage().equals("Tracking number already exists!"), "Delivered tracking number remains unique");
+        }
+        try {
+            manager.changeDeliveryService("ABC9999", new StandardDelivery());
+            throw new AssertionError("Missing parcel service change should fail");
+        } catch (IllegalArgumentException exception) {
+            check(exception.getMessage().equals("Parcel not found!"), "Manager handles missing service-change parcel");
+        }
+        try {
+            manager.markAsDelivered("ABC9999");
+            throw new AssertionError("Missing parcel delivery should fail");
+        } catch (IllegalArgumentException exception) {
+            check(exception.getMessage().equals("Parcel not found!"), "Manager handles missing delivery parcel");
+        }
+        try {
+            manager.addParcel(null);
+            throw new AssertionError("Null parcel should fail");
+        } catch (IllegalArgumentException exception) {
+            check(true, "Null parcel rejected");
+        }
+        Parcel alreadyDelivered = new Document("ABC0031", "Ana", 0.1, 1);
+        alreadyDelivered.setDeliveryStrategy(new StandardDelivery());
+        alreadyDelivered.markAsDelivered();
+        try {
+            manager.addParcel(alreadyDelivered);
+            throw new AssertionError("New parcel must be Pending");
+        } catch (IllegalArgumentException exception) {
+            check(manager.getAllParcels().size() == 1, "Invalid additions do not change stored parcels");
+        }
     }
 
     private static void check(boolean condition, String description) {

@@ -1,15 +1,15 @@
 // Fragile is a Box, so it reuses the dimensions and chargeable-weight rule.
-public class FragileParcel extends BoxParcel {
+public class Fragile extends Box {
     private final String handlingNote;
 
-    public FragileParcel(String trackingNumber, String receiverName, double weight,
-                         int length, int width, int height, String handlingNote) throws ParcelException {
+    public Fragile(String trackingNumber, String receiverName, double weight,
+                   int length, int width, int height, String handlingNote) {
         super(trackingNumber, receiverName, weight, length, width, height);
         if (weight > 30) {
-            throw new ParcelException("Fragile weight must be 30 kg or less!");
+            throw new IllegalArgumentException("Fragile weight must be 30 kg or less!");
         }
         if (handlingNote == null || handlingNote.trim().isEmpty()) {
-            throw new ParcelException("Handling note cannot be empty!");
+            throw new IllegalArgumentException("Handling note cannot be empty!");
         }
         this.handlingNote = handlingNote.trim();
     }

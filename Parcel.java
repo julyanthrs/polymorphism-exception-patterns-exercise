@@ -3,19 +3,19 @@ public abstract class Parcel {
     private final String trackingNumber;
     private final String receiverName;
     private final double weight;
-    private DeliveryService deliveryService;
+    private DeliveryStrategy deliveryService;
     private double deliveryFee;
     private boolean delivered;
 
-    public Parcel(String trackingNumber, String receiverName, double weight) throws ParcelException {
+    public Parcel(String trackingNumber, String receiverName, double weight) {
         if (trackingNumber == null || !trackingNumber.matches("ABC[0-9]{4}")) {
-            throw new ParcelException("Tracking number must be ABC followed by 4 digits (example: ABC0001).");
+            throw new IllegalArgumentException("Tracking number must be ABC followed by 4 digits (example: ABC0001).");
         }
         if (receiverName == null || receiverName.trim().isEmpty()) {
-            throw new ParcelException("Receiver name cannot be empty!");
+            throw new IllegalArgumentException("Receiver name cannot be empty!");
         }
         if (!Double.isFinite(weight) || weight <= 0) {
-            throw new ParcelException("Weight must be a valid number greater than 0!");
+            throw new IllegalArgumentException("Weight must be a valid number greater than 0!");
         }
         this.trackingNumber = trackingNumber;
         this.receiverName = receiverName.trim();
@@ -26,22 +26,29 @@ public abstract class Parcel {
     public abstract double getChargeableWeight();
     public abstract double getBaseFee();
 
-    public void setDeliveryService(DeliveryService newService) throws ParcelException {
+    public void setDeliveryStrategy(DeliveryStrategy newService) {
         if (delivered) {
-            throw new ParcelException("Parcel already delivered!");
+            throw new IllegalArgumentException("Parcel already delivered!");
         }
-        if (newService == null) {
-            throw new ParcelException("Please select a delivery service!");
-        }
-        // Calculate first: a rejected service must not replace the old service.
-        double newFee = newService.calculateFee(getBaseFee(), getChargeableWeight());
+        validateDeliveryStrategy(newService);
+        // Validate and calculate before changing the stored service or fee.
+        double newFee = newService.calculateFee(getBaseFee());
         deliveryService = newService;
         deliveryFee = newFee;
     }
 
-    public void markAsDelivered() throws ParcelException {
+    private void validateDeliveryStrategy(DeliveryStrategy service) {
+        if (service == null) {
+            throw new IllegalArgumentException("Please select a delivery service!");
+        }
+        if (service instanceof SameDayDelivery && getChargeableWeight() > 10) {
+            throw new IllegalArgumentException("Same Day delivery is only for parcels up to 10 kg!");
+        }
+    }
+
+    public void markAsDelivered() {
         if (delivered) {
-            throw new ParcelException("Parcel was already delivered.");
+            throw new IllegalArgumentException("Parcel was already delivered.");
         }
         delivered = true;
     }
@@ -58,7 +65,7 @@ public abstract class Parcel {
         return weight;
     }
 
-    public DeliveryService getDeliveryService() {
+    public DeliveryStrategy getDeliveryStrategy() {
         return deliveryService;
     }
 

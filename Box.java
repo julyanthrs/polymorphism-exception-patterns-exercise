@@ -1,16 +1,16 @@
-public class BoxParcel extends Parcel {
+public class Box extends Parcel {
     private final int length;
     private final int width;
     private final int height;
 
-    public BoxParcel(String trackingNumber, String receiverName, double weight,
-                     int length, int width, int height) throws ParcelException {
+    public Box(String trackingNumber, String receiverName, double weight,
+               int length, int width, int height) {
         super(trackingNumber, receiverName, weight);
         if (weight > 50) {
-            throw new ParcelException("Box weight must be 50 kg or less!");
+            throw new IllegalArgumentException("Box weight must be 50 kg or less!");
         }
         if (length <= 0 || width <= 0 || height <= 0) {
-            throw new ParcelException("Length, width, and height must be whole numbers greater than 0!");
+            throw new IllegalArgumentException("Length, width, and height must be whole numbers greater than 0!");
         }
         this.length = length;
         this.width = width;

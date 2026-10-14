@@ -14,7 +14,7 @@ public class Main {
         try {
             do {
                 printMenu();
-                choice = readInteger("Choose an option: ", 1, 5);
+                choice = readMenuChoice();
                 switch (choice) {
                     case 1:
                         addParcel();
@@ -41,12 +41,31 @@ public class Main {
     }
 
     private static void printMenu() {
-        System.out.println("\n=== Parcel Delivery System ===");
+        System.out.println("\n========================================");
+        System.out.println("          PARCEL DELIVERY SYSTEM");
+        System.out.println("========================================");
         System.out.println("1. Add Parcel");
         System.out.println("2. View All Parcels");
         System.out.println("3. Change Delivery Service");
         System.out.println("4. Mark as Delivered");
         System.out.println("5. Exit");
+        System.out.println("========================================");
+    }
+
+    private static int readMenuChoice() {
+        System.out.print("Enter choice: ");
+        String input = scanner.nextLine().trim();
+        try {
+            int choice = Integer.parseInt(input);
+            if (!input.matches("[0-9]+") || choice < 1 || choice > 5) {
+                System.out.println("Invalid choice! Enter a whole number from 1 to 5.");
+                return 0;
+            }
+            return choice;
+        } catch (NumberFormatException exception) {
+            System.out.println("Invalid choice! Enter a whole number from 1 to 5.");
+            return 0;
+        }
     }
 
     private static void addParcel() {
@@ -62,7 +81,7 @@ public class Main {
             selectInitialService(parcel);
             manager.addParcel(parcel);
             System.out.printf("Parcel added successfully! Delivery fee: Php %.2f%n", parcel.getDeliveryFee());
-        } catch (ParcelException exception) {
+        } catch (IllegalArgumentException exception) {
             System.out.println(exception.getMessage());
         }
     }
@@ -79,10 +98,10 @@ public class Main {
     }
 
     private static Parcel createParcel(int type, String trackingNumber, String receiverName,
-                                       double weight) throws ParcelException {
+                                       double weight) {
         if (type == 1) {
             int pages = readInteger("Number of pages (1-100): ", 1, 100);
-            return new DocumentParcel(trackingNumber, receiverName, weight, pages);
+            return new Document(trackingNumber, receiverName, weight, pages);
         }
 
         int length = readInteger("Length in cm: ", 1, Integer.MAX_VALUE);
@@ -90,14 +109,14 @@ public class Main {
         int height = readInteger("Height in cm: ", 1, Integer.MAX_VALUE);
 
         if (type == 2) {
-            return new BoxParcel(trackingNumber, receiverName, weight, length, width, height);
+            return new Box(trackingNumber, receiverName, weight, length, width, height);
         }
 
         String handlingNote = readText("Handling note: ");
-        return new FragileParcel(trackingNumber, receiverName, weight, length, width, height, handlingNote);
+        return new Fragile(trackingNumber, receiverName, weight, length, width, height, handlingNote);
     }
 
-    private static DeliveryService readDeliveryService() {
+    private static DeliveryStrategy readDeliveryStrategy() {
         System.out.println("Delivery service: 1. Standard  2. Express  3. Same Day");
         int service = readInteger("Select delivery service: ", 1, 3);
         switch (service) {
@@ -114,9 +133,9 @@ public class Main {
         boolean serviceSelected = false;
         do {
             try {
-                parcel.setDeliveryService(readDeliveryService());
+                parcel.setDeliveryStrategy(readDeliveryStrategy());
                 serviceSelected = true;
-            } catch (ParcelException exception) {
+            } catch (IllegalArgumentException exception) {
                 System.out.println(exception.getMessage());
             }
         } while (!serviceSelected);
@@ -125,7 +144,7 @@ public class Main {
     private static void viewAllParcels() {
         ArrayList<Parcel> parcels = manager.getAllParcels();
         if (parcels.isEmpty()) {
-            System.out.println("No parcels yet.");
+            System.out.println("No parcels available!");
             return;
         }
 
@@ -133,48 +152,35 @@ public class Main {
         for (Parcel parcel : parcels) {
             receiverWidth = Math.max(receiverWidth, parcel.getReceiverName().length());
         }
-        String rowFormat = "%-10s | %-8s | %-" + receiverWidth + "s | %13s | %-8s | %18s | %-9s%n";
+        String rowFormat = "%-12s | %-11s | %-" + receiverWidth + "s | %16s | %-16s | %18s | %-9s%n";
         System.out.println();
-        System.out.printf(rowFormat, "Tracking", "Type", "Receiver", "Chargeable kg", "Service", "Delivery fee", "Status");
+        System.out.printf(rowFormat, "Tracking No.", "Parcel Type", "Receiver", "Chargeable kg", "Delivery Service", "Delivery Fee", "Status");
         // Each Parcel reference uses the actual object's overridden methods.
         for (Parcel parcel : parcels) {
             System.out.printf(rowFormat, parcel.getTrackingNumber(), parcel.getType(), parcel.getReceiverName(),
-                    String.valueOf(parcel.getChargeableWeight()), parcel.getDeliveryService().getName(),
+                    String.valueOf(parcel.getChargeableWeight()), parcel.getDeliveryStrategy().getName(),
                     String.format("Php %.2f", parcel.getDeliveryFee()), parcel.getStatus());
         }
     }
 
     private static void changeDeliveryService() {
         String trackingNumber = readText("Tracking number: ");
-        Parcel parcel = manager.findParcel(trackingNumber);
-        if (parcel == null) {
-            System.out.println("Parcel not found!");
-            return;
-        }
-        if (parcel.isDelivered()) {
-            System.out.println("Parcel already delivered!");
-            return;
-        }
-
         try {
-            parcel.setDeliveryService(readDeliveryService());
-            System.out.printf("Delivery service changed! New fee: Php %.2f%n", parcel.getDeliveryFee());
-        } catch (ParcelException exception) {
+            manager.getPendingParcel(trackingNumber);
+            DeliveryStrategy service = readDeliveryStrategy();
+            double newFee = manager.changeDeliveryService(trackingNumber, service);
+            System.out.printf("Delivery service changed! New fee: Php %.2f%n", newFee);
+        } catch (IllegalArgumentException exception) {
             System.out.println(exception.getMessage());
         }
     }
 
     private static void markAsDelivered() {
         String trackingNumber = readText("Tracking number: ");
-        Parcel parcel = manager.findParcel(trackingNumber);
-        if (parcel == null) {
-            System.out.println("Parcel not found!");
-            return;
-        }
         try {
-            parcel.markAsDelivered();
+            manager.markAsDelivered(trackingNumber);
             System.out.println("Parcel delivered successfully!");
-        } catch (ParcelException exception) {
+        } catch (IllegalArgumentException exception) {
             System.out.println(exception.getMessage());
         }
     }
@@ -216,6 +222,10 @@ public class Main {
             String input = readText(prompt);
             try {
                 value = Integer.parseInt(input);
+                if (!input.matches("[0-9]+")) {
+                    System.out.println("Please enter digits only for a positive whole number!");
+                    continue;
+                }
                 if (value < minimum || value > maximum) {
                     System.out.printf("Enter a whole number from %d to %d!%n", minimum, maximum);
                     continue;
@@ -233,6 +243,10 @@ public class Main {
         boolean valid = false;
         do {
             String input = readText("Weight in kg (maximum " + maximum + "): ");
+            if (!input.matches("[0-9]*\\.?[0-9]+")) {
+                System.out.println("Enter a positive decimal weight using digits and an optional decimal point!");
+                continue;
+            }
             try {
                 weight = Double.parseDouble(input);
                 if (!Double.isFinite(weight) || weight <= 0 || weight > maximum) {
