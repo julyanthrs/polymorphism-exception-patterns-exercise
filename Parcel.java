@@ -31,6 +31,10 @@ public abstract class Parcel {
             throw new IllegalArgumentException("Parcel already delivered!");
         }
         validateDeliveryStrategy(newService);
+        if (deliveryService != null && deliveryService.getClass() == newService.getClass()) {
+            throw new IllegalArgumentException("This parcel already uses "
+                    + newService.getName() + " delivery service!");
+        }
         // Validate and calculate before changing the stored service or fee.
         double newFee = newService.calculateFee(getBaseFee());
         deliveryService = newService;

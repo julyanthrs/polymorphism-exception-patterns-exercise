@@ -108,6 +108,17 @@ public class ParcelSystemTest {
         check(heavy.getDeliveryStrategy() == oldService, "Rejected change preserves old strategy");
         check(heavy.getDeliveryFee() == 660, "Rejected change preserves old fee");
 
+        DeliveryStrategy sameService = heavy.getDeliveryStrategy();
+        try {
+            heavy.setDeliveryStrategy(new ExpressDelivery());
+            throw new AssertionError("Changing to the current service should fail");
+        } catch (IllegalArgumentException exception) {
+            check(exception.getMessage().equals("This parcel already uses Express delivery service!"),
+                    "Same delivery service rejection message");
+        }
+        check(heavy.getDeliveryStrategy() == sameService, "Same service rejection preserves the strategy");
+        check(heavy.getDeliveryFee() == 660, "Same service rejection preserves the fee");
+
         Parcel bulky = new Box("ABC0012", "Pat", 1, 100, 100, 100);
         try {
             bulky.setDeliveryStrategy(new SameDayDelivery());
@@ -204,6 +215,21 @@ public class ParcelSystemTest {
     private static void checkManager() {
         ParcelManager manager = ParcelManager.getInstance();
         check(manager == ParcelManager.getInstance(), "Singleton returns the same manager");
+        check(manager.hasNoParcels(), "Manager starts with no parcels");
+        try {
+            manager.changeDeliveryService("ABC0030", new StandardDelivery());
+            throw new AssertionError("Empty parcel list should reject a service change");
+        } catch (IllegalArgumentException exception) {
+            check(exception.getMessage().equals("No parcels available! Add a parcel first."),
+                    "Empty parcel list service-change message");
+        }
+        try {
+            manager.markAsDelivered("ABC0030");
+            throw new AssertionError("Empty parcel list should reject delivery");
+        } catch (IllegalArgumentException exception) {
+            check(exception.getMessage().equals("No parcels available! Add a parcel first."),
+                    "Empty parcel list delivery message");
+        }
         Parcel parcel = new Document("ABC0030", "Juan", 0.1, 1);
         try {
             manager.addParcel(parcel);

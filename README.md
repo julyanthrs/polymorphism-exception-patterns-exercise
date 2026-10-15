@@ -57,7 +57,7 @@ Every parcel needs a unique tracking number such as `ABC0001`, a non-empty recei
 
 Standard uses the base fee. Express multiplies it by 1.5. Same Day doubles it and adds Php 100, and requires a chargeable weight of at most 10 kg.
 
-The shared validation in `Parcel` rejects unavailable Same Day delivery before changing the strategy or fee. Adding then asks for another service. A rejected service change returns to the menu and keeps the previous service and fee. Delivered parcels cannot change services or be marked Delivered again.
+The shared validation in `Parcel` rejects unavailable Same Day delivery before changing the strategy or fee. Adding then asks for another service. A rejected service change returns to the menu and keeps the previous service and fee. A parcel also cannot be changed to the service it already uses. Delivered parcels cannot change services or be marked Delivered again. Service changes and deliveries cannot start until at least one parcel exists.
 
 ## Example
 

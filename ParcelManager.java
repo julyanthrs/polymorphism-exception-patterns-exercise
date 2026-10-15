@@ -37,7 +37,14 @@ public class ParcelManager {
         return null;
     }
 
+    public boolean hasNoParcels() {
+        return parcels.isEmpty();
+    }
+
     private Parcel getParcel(String trackingNumber) {
+        if (hasNoParcels()) {
+            throw new IllegalArgumentException("No parcels available! Add a parcel first.");
+        }
         Parcel parcel = findParcel(trackingNumber);
         if (parcel == null) {
             throw new IllegalArgumentException("Parcel not found!");

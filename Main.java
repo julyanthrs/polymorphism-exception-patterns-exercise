@@ -164,9 +164,13 @@ public class Main {
     }
 
     private static void changeDeliveryService() {
-        String trackingNumber = readText("Tracking number: ");
+        if (showEmptyParcelError()) {
+            return;
+        }
+        String trackingNumber = readExistingTrackingNumber();
         try {
-            manager.getPendingParcel(trackingNumber);
+            Parcel parcel = manager.getPendingParcel(trackingNumber);
+            System.out.println("Current delivery service: " + parcel.getDeliveryStrategy().getName());
             DeliveryStrategy service = readDeliveryStrategy();
             double newFee = manager.changeDeliveryService(trackingNumber, service);
             System.out.printf("Delivery service changed! New fee: Php %.2f%n", newFee);
@@ -176,13 +180,24 @@ public class Main {
     }
 
     private static void markAsDelivered() {
-        String trackingNumber = readText("Tracking number: ");
+        if (showEmptyParcelError()) {
+            return;
+        }
+        String trackingNumber = readExistingTrackingNumber();
         try {
             manager.markAsDelivered(trackingNumber);
             System.out.println("Parcel delivered successfully!");
         } catch (IllegalArgumentException exception) {
             System.out.println(exception.getMessage());
         }
+    }
+
+    private static boolean showEmptyParcelError() {
+        if (manager.hasNoParcels()) {
+            System.out.println("No parcels available! Add a parcel first.");
+            return true;
+        }
+        return false;
     }
 
     private static String readNewTrackingNumber() {
@@ -196,6 +211,20 @@ public class Main {
             }
             if (manager.findParcel(trackingNumber) != null) {
                 System.out.println("Tracking number already exists!");
+                continue;
+            }
+            valid = true;
+        } while (!valid);
+        return trackingNumber;
+    }
+
+    private static String readExistingTrackingNumber() {
+        String trackingNumber;
+        boolean valid = false;
+        do {
+            trackingNumber = readText("Tracking number: ");
+            if (!trackingNumber.matches("ABC[0-9]{4}")) {
+                System.out.println("Tracking number must be ABC followed by 4 digits (example: ABC0001).");
                 continue;
             }
             valid = true;
