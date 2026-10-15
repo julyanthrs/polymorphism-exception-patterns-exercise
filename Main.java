@@ -1,5 +1,4 @@
 import java.util.ArrayList;
-import java.util.Locale;
 import java.util.NoSuchElementException;
 import java.util.Scanner;
 
@@ -8,7 +7,6 @@ public class Main {
     private static final ParcelManager manager = ParcelManager.getInstance();
 
     public static void main(String[] args) {
-        Locale.setDefault(Locale.US);
         int choice = 0;
 
         try {
@@ -148,18 +146,15 @@ public class Main {
             return;
         }
 
-        int receiverWidth = "Receiver".length();
-        for (Parcel parcel : parcels) {
-            receiverWidth = Math.max(receiverWidth, parcel.getReceiverName().length());
-        }
-        String rowFormat = "%-12s | %-11s | %-" + receiverWidth + "s | %16s | %-16s | %18s | %-9s%n";
         System.out.println();
-        System.out.printf(rowFormat, "Tracking No.", "Parcel Type", "Receiver", "Chargeable kg", "Delivery Service", "Delivery Fee", "Status");
+        System.out.printf("%-12s %-10s %-20s %-14s %-16s %-16s %-10s%n",
+                "Tracking No.", "Type", "Receiver", "Weight", "Service", "Fee", "Status");
         // Each Parcel reference uses the actual object's overridden methods.
         for (Parcel parcel : parcels) {
-            System.out.printf(rowFormat, parcel.getTrackingNumber(), parcel.getType(), parcel.getReceiverName(),
-                    String.valueOf(parcel.getChargeableWeight()), parcel.getDeliveryStrategy().getName(),
-                    String.format("Php %.2f", parcel.getDeliveryFee()), parcel.getStatus());
+            System.out.printf("%-12s %-10s %-20s %-14.2f %-16s Php %-12.2f %-10s%n",
+                    parcel.getTrackingNumber(), parcel.getType(), parcel.getReceiverName(),
+                    parcel.getChargeableWeight(), parcel.getDeliveryStrategy().getName(),
+                    parcel.getDeliveryFee(), parcel.getStatus());
         }
     }
 

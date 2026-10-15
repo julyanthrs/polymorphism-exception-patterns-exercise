@@ -31,7 +31,7 @@ public abstract class Parcel {
             throw new IllegalArgumentException("Parcel already delivered!");
         }
         validateDeliveryStrategy(newService);
-        if (deliveryService != null && deliveryService.getClass() == newService.getClass()) {
+        if (deliveryService != null && deliveryService.getName().equals(newService.getName())) {
             throw new IllegalArgumentException("This parcel already uses "
                     + newService.getName() + " delivery service!");
         }
